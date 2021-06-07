@@ -6,6 +6,7 @@ import io.flutter.plugin.common.MethodChannel;
 
 public class CustomMethodCallHandler implements MethodChannel.MethodCallHandler {
     private CustomFilePicker customFilePicker;
+    private MethodChannel.Result openFileResult;
 
     CustomMethodCallHandler(CustomFilePicker customFilePicker) {
         this.customFilePicker = customFilePicker;
@@ -17,7 +18,7 @@ public class CustomMethodCallHandler implements MethodChannel.MethodCallHandler 
 
         switch (methodName) {
             case "test":
-                result.success(true);
+                customFilePicker.pickFile(result);
                 break;
             default:
                 handleDefault(result);
