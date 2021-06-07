@@ -6,8 +6,12 @@ class FlutterCustomFilePicker {
   static const MethodChannel _channel = const MethodChannel(
       'in.lazymanstudios.customfilepickerplugin/customfilepicker');
 
-  static Future<String> test() async {
-    return await _channel.invokeMethod('test');
+  static Future<String> pickFile() async {
+    return await _channel.invokeMethod('pickFile');
+  }
+
+  static Future<String> readFile(String uri) async {
+    return await _channel.invokeMethod('readFile', {"uri": uri});
   }
 
   static Future<String?> get platformVersion async {

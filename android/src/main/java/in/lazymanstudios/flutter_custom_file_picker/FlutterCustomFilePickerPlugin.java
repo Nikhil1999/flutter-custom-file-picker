@@ -18,6 +18,7 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
   private CustomFilePicker customFilePicker;
   private MethodChannel customMethodChannel;
   private CustomMethodCallHandler customMethodCallHandler;
+  private ActivityPluginBinding activityPluginBinding;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -33,12 +34,16 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
 
   @Override
   public void onAttachedToActivity(ActivityPluginBinding binding) {
+    activityPluginBinding = binding;
+    activityPluginBinding.addActivityResultListener(customFilePicker);
     customFilePicker.setActivity(binding.getActivity());
   }
 
   @Override
   public void onDetachedFromActivity() {
+    activityPluginBinding.removeActivityResultListener(customFilePicker);
     customFilePicker.setActivity(null);
+    activityPluginBinding = null;
   }
 
   @Override
