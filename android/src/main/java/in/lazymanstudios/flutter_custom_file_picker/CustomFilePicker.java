@@ -14,26 +14,42 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Dictionary;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Objects;
+import java.util.UUID;
 
+import io.flutter.plugin.common.BinaryMessenger;
+import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
 
 public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
     private static final int PICK_FILE = 555;
 
+    private Dictionary<String, EventChannel> eventChannelDictionary = new Hashtable<>();
+    private Dictionary<String, CustomEventCallHandler> eventCallHandlerDictionary = new Hashtable<>();
+
     private Context context;
     private Activity activity;
+    private BinaryMessenger binaryMessenger;
 
     private MethodChannel.Result pickFileResult;
 
-    public CustomFilePicker(Context context, Activity activity) {
+    public CustomFilePicker(Context context, Activity activity, BinaryMessenger binaryMessenger) {
         this.activity = activity;
+        this.binaryMessenger = binaryMessenger;
     }
 
     public void setActivity(Activity activity) {
         this.activity = activity;
+        Enumeration<String> e = eventCallHandlerDictionary.keys();
+        while(e.hasMoreElements()) {
+            CustomEventCallHandler customEventCallHandler = eventCallHandlerDictionary.get(e.nextElement());
+            customEventCallHandler.setActivity(activity);
+        }
     }
 
     public void pickFile(MethodChannel.Result result) throws IllegalStateException {
@@ -68,6 +84,20 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
         }
     }
 
+    private void getFileStream(String streamID, String uriString) {
+        EventChannel eventChannel = new EventChannel(binaryMessenger, "s");
+        eventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+            @Override
+            public void onListen(Object arguments, EventChannel.EventSink events) {
+            }
+
+            @Override
+            public void onCancel(Object arguments) {
+
+            }
+        });
+    }
+
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == PICK_FILE) {
@@ -75,11 +105,23 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
                 if (data != null) {
                     Uri uri = data.getData();
                     String name = getNameFromUri(uri);
-                    
+                    String size = getSizeFromUri(uri);
+                    String streamID = UUID.randomUUID().toString();
+
                     if(name != null) {
                         HashMap<String, String> hashMap = new HashMap<>();
                         hashMap.put("uri", uri.toString());
                         hashMap.put("name", name);
+                        hashMap.put("size", size);
+                        hashMap.put("streamID", streamID);
+                        
+                        EventChannel eventChannel = new EventChannel(binaryMessenger, streamID);
+                        CustomEventCallHandler customEventCallHandler = new CustomEventCallHandler(activity, uri);
+                        eventChannel.setStreamHandler(customEventCallHandler);
+                        
+                        eventChannelDictionary.put(streamID, eventChannel);
+                        eventCallHandlerDictionary.put(streamID, customEventCallHandler);
+                        
                         pickFileResult.success(hashMap);
                     } else {
                         pickFileResult.success(null);
@@ -95,6 +137,22 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
         return false;
     }
 
+    public void setupEventListeners() {
+        Enumeration<String> e = eventChannelDictionary.keys();
+        while(e.hasMoreElements()) {
+            EventChannel eventChannel = eventChannelDictionary.get(e.nextElement());
+            eventChannel.setStreamHandler(eventCallHandlerDictionary.get(e.nextElement()));
+        }
+    }
+    
+    public void clearEventListeners() {
+        Enumeration<String> e = eventChannelDictionary.keys();
+        while(e.hasMoreElements()) {
+            EventChannel eventChannel = eventChannelDictionary.get(e.nextElement());
+            eventChannel.setStreamHandler(null);
+        }
+    }
+
     private String getNameFromUri(Uri uri) {
         try (Cursor cursor = activity.getContentResolver()
                 .query(uri, null, null, null, null, null)) {
@@ -104,5 +162,18 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
             }
         }
         return null;
+    }
+
+    private String getSizeFromUri(Uri uri) {
+        try (Cursor cursor = activity.getContentResolver()
+                .query(uri, null, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (!cursor.isNull(sizeIndex)) {
+                    return cursor.getString(sizeIndex);
+                }
+            }
+        }
+        return "Unknown";
     }
 }

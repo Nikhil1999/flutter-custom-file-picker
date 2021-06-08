@@ -14,10 +14,12 @@ import io.flutter.plugin.common.MethodChannel;
 
 /** FlutterCustomFilePickerPlugin */
 public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAware {
-  private static final String CHANNEL = "in.lazymanstudios.customfilepickerplugin/customfilepicker";
+  private static final String METHOD_CHANNEL = "in.lazymanstudios.customfilepickerplugin/customfilepicker";
+  private static final String FILE_STREAM_EVENT_CHANNEL = "in.lazymanstudios.customfilepickerplugin/customfilepicker/filestream";
   private CustomFilePicker customFilePicker;
   private MethodChannel customMethodChannel;
   private CustomMethodCallHandler customMethodCallHandler;
+  private CustomEventCallHandler customEventCallHandler;
   private ActivityPluginBinding activityPluginBinding;
 
   @Override
@@ -29,6 +31,7 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     customMethodChannel.setMethodCallHandler(null);
     customMethodChannel = null;
+    customFilePicker.clearEventListeners();
     customFilePicker = null;
   }
 
@@ -57,8 +60,8 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
   }
 
   private void setUpChannel(Context context, BinaryMessenger messenger) {
-    customMethodChannel = new MethodChannel(messenger, CHANNEL);
-    customFilePicker = new CustomFilePicker(context, null);
+    customMethodChannel = new MethodChannel(messenger, METHOD_CHANNEL);
+    customFilePicker = new CustomFilePicker(context, null, messenger);
     customMethodCallHandler = new CustomMethodCallHandler(customFilePicker);
     customMethodChannel.setMethodCallHandler(customMethodCallHandler);
   }
