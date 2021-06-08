@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -12,6 +14,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.Objects;
 
 import io.flutter.plugin.common.MethodChannel;
@@ -71,7 +74,16 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
             if(resultCode == Activity.RESULT_OK) {
                 if (data != null) {
                     Uri uri = data.getData();
-                    pickFileResult.success(uri.toString());
+                    String name = getNameFromUri(uri);
+                    
+                    if(name != null) {
+                        HashMap<String, String> hashMap = new HashMap<>();
+                        hashMap.put("uri", uri.toString());
+                        hashMap.put("name", name);
+                        pickFileResult.success(hashMap);
+                    } else {
+                        pickFileResult.success(null);
+                    }
                 } else {
                     pickFileResult.success(null);
                 }
@@ -81,5 +93,16 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
             return true;
         }
         return false;
+    }
+
+    private String getNameFromUri(Uri uri) {
+        try (Cursor cursor = activity.getContentResolver()
+                .query(uri, null, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getString(
+                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+            }
+        }
+        return null;
     }
 }
