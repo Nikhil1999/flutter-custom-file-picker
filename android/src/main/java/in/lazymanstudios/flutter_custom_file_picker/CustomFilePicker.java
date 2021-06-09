@@ -1,17 +1,13 @@
 package in.lazymanstudios.flutter_custom_file_picker;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
-import android.util.Log;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Dictionary;
@@ -29,12 +25,12 @@ import io.flutter.plugin.common.PluginRegistry;
 public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
     private static final int PICK_FILE = 555;
 
-    private Dictionary<String, EventChannel> eventChannelDictionary = new Hashtable<>();
-    private Dictionary<String, CustomEventCallHandler> eventCallHandlerDictionary = new Hashtable<>();
+    private final Dictionary<String, EventChannel> eventChannelDictionary = new Hashtable<>();
+    private final Dictionary<String, CustomEventCallHandler> eventCallHandlerDictionary = new Hashtable<>();
 
     private Context context;
     private Activity activity;
-    private BinaryMessenger binaryMessenger;
+    private final BinaryMessenger binaryMessenger;
 
     private MethodChannel.Result pickFileResult;
 
@@ -82,20 +78,6 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
                 e.printStackTrace();
             }
         }
-    }
-
-    private void getFileStream(String streamID, String uriString) {
-        EventChannel eventChannel = new EventChannel(binaryMessenger, "s");
-        eventChannel.setStreamHandler(new EventChannel.StreamHandler() {
-            @Override
-            public void onListen(Object arguments, EventChannel.EventSink events) {
-            }
-
-            @Override
-            public void onCancel(Object arguments) {
-
-            }
-        });
     }
 
     @Override

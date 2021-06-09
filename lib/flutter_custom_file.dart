@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -17,14 +16,18 @@ class FlutterCustomFile {
   }
 
   Stream<List<int>>? openRead() {
-    StreamTransformer<Uint8List, List<int>> bytesTransformer =
+    StreamTransformer<dynamic, List<int>> bytesTransformer =
         StreamTransformer.fromHandlers(
       handleData: (data, sink) {
         sink.add(List<int>.from(data));
       },
     );
 
-    return _eventChannel?.receiveBroadcastStream().transform(bytesTransformer);
+    return _eventChannel
+        ?.receiveBroadcastStream()
+        .asBroadcastStream()
+        .transform(bytesTransformer)
+        .asBroadcastStream();
   }
 
   String? get uri => _uri;

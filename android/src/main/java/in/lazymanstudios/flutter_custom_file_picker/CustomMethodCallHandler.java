@@ -5,7 +5,7 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
 public class CustomMethodCallHandler implements MethodChannel.MethodCallHandler {
-    private CustomFilePicker customFilePicker;
+    private final CustomFilePicker customFilePicker;
 
     CustomMethodCallHandler(CustomFilePicker customFilePicker) {
         this.customFilePicker = customFilePicker;

@@ -15,11 +15,9 @@ import io.flutter.plugin.common.MethodChannel;
 /** FlutterCustomFilePickerPlugin */
 public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAware {
   private static final String METHOD_CHANNEL = "in.lazymanstudios.customfilepickerplugin/customfilepicker";
-  private static final String FILE_STREAM_EVENT_CHANNEL = "in.lazymanstudios.customfilepickerplugin/customfilepicker/filestream";
   private CustomFilePicker customFilePicker;
   private MethodChannel customMethodChannel;
   private CustomMethodCallHandler customMethodCallHandler;
-  private CustomEventCallHandler customEventCallHandler;
   private ActivityPluginBinding activityPluginBinding;
 
   @Override
