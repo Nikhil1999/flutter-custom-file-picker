@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
 class FlutterCustomFile {
   EventChannel? _eventChannel;
@@ -24,7 +25,7 @@ class FlutterCustomFile {
     );
 
     return _eventChannel
-        ?.receiveBroadcastStream()
+        ?.receiveBroadcastStream(Uuid().v4())
         .asBroadcastStream()
         .transform(bytesTransformer)
         .asBroadcastStream();

@@ -10,6 +10,7 @@ import android.provider.OpenableColumns;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.ref.WeakReference;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -17,34 +18,34 @@ import java.util.Hashtable;
 import java.util.Objects;
 import java.util.UUID;
 
+import in.lazymanstudios.flutter_custom_file_picker.handler.FileEventChannelHandler;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
 
-public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
+ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
     private static final int PICK_FILE = 555;
 
-    private final Dictionary<String, EventChannel> eventChannelDictionary = new Hashtable<>();
-    private final Dictionary<String, CustomEventCallHandler> eventCallHandlerDictionary = new Hashtable<>();
+    private final Dictionary<String, FileEventChannelHandler> fileEventChannelHandlerDictionary = new Hashtable<>();
 
     private Context context;
-    private Activity activity;
+    private WeakReference<Activity> activityWeakReference;
     private final BinaryMessenger binaryMessenger;
 
     private MethodChannel.Result pickFileResult;
 
     public CustomFilePicker(Context context, Activity activity, BinaryMessenger binaryMessenger) {
-        this.activity = activity;
+        this.activityWeakReference = new WeakReference<>(activity);
         this.binaryMessenger = binaryMessenger;
     }
 
     public void setActivity(Activity activity) {
-        this.activity = activity;
-        Enumeration<String> e = eventCallHandlerDictionary.keys();
+        this.activityWeakReference = new WeakReference<>(activity);
+        Enumeration<String> e = fileEventChannelHandlerDictionary.keys();
         while(e.hasMoreElements()) {
-            CustomEventCallHandler customEventCallHandler = eventCallHandlerDictionary.get(e.nextElement());
-            customEventCallHandler.setActivity(activity);
+            FileEventChannelHandler fileEventChannelHandler = fileEventChannelHandlerDictionary.get(e.nextElement());
+            fileEventChannelHandler.setActivity(activity);
         }
     }
 
@@ -54,6 +55,7 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
 
+        Activity activity = activityWeakReference.get();
         if(activity != null) {
             activity.startActivityForResult(intent, PICK_FILE);
         } else {
@@ -63,6 +65,8 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
 
     public void readFile(MethodChannel.Result result, String uriString) {
         Uri uri = Uri.parse(uriString);
+
+        Activity activity = activityWeakReference.get();
         if(activity != null) {
             StringBuilder stringBuilder = new StringBuilder();
             try (InputStream inputStream =
@@ -96,14 +100,10 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
                         hashMap.put("name", name);
                         hashMap.put("size", size);
                         hashMap.put("streamID", streamID);
-                        
-                        EventChannel eventChannel = new EventChannel(binaryMessenger, streamID);
-                        CustomEventCallHandler customEventCallHandler = new CustomEventCallHandler(activity, uri);
-                        eventChannel.setStreamHandler(customEventCallHandler);
-                        
-                        eventChannelDictionary.put(streamID, eventChannel);
-                        eventCallHandlerDictionary.put(streamID, customEventCallHandler);
-                        
+
+                        FileEventChannelHandler fileEventChannelHandler = new FileEventChannelHandler(activityWeakReference.get(), uri, new EventChannel(binaryMessenger, streamID));
+                        fileEventChannelHandlerDictionary.put(streamID, fileEventChannelHandler);
+
                         pickFileResult.success(hashMap);
                     } else {
                         pickFileResult.success(null);
@@ -119,40 +119,40 @@ public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
         return false;
     }
 
-    public void setupEventListeners() {
-        Enumeration<String> e = eventChannelDictionary.keys();
-        while(e.hasMoreElements()) {
-            EventChannel eventChannel = eventChannelDictionary.get(e.nextElement());
-            eventChannel.setStreamHandler(eventCallHandlerDictionary.get(e.nextElement()));
-        }
-    }
-    
     public void clearEventListeners() {
-        Enumeration<String> e = eventChannelDictionary.keys();
+        Enumeration<String> e = fileEventChannelHandlerDictionary.keys();
         while(e.hasMoreElements()) {
-            EventChannel eventChannel = eventChannelDictionary.get(e.nextElement());
-            eventChannel.setStreamHandler(null);
+            String id = e.nextElement();
+            FileEventChannelHandler fileEventChannelHandler = fileEventChannelHandlerDictionary.get(id);
+            fileEventChannelHandler.clearListeners();
+            fileEventChannelHandlerDictionary.remove(id);
         }
     }
 
     private String getNameFromUri(Uri uri) {
-        try (Cursor cursor = activity.getContentResolver()
-                .query(uri, null, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                return cursor.getString(
-                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+        Activity activity = activityWeakReference.get();
+        if(activity != null) {
+            try (Cursor cursor = activity.getContentResolver()
+                    .query(uri, null, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    return cursor.getString(
+                            cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                }
             }
         }
         return null;
     }
 
     private String getSizeFromUri(Uri uri) {
-        try (Cursor cursor = activity.getContentResolver()
-                .query(uri, null, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-                if (!cursor.isNull(sizeIndex)) {
-                    return cursor.getString(sizeIndex);
+        Activity activity = activityWeakReference.get();
+        if(activity != null) {
+            try (Cursor cursor = activity.getContentResolver()
+                    .query(uri, null, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                    if (!cursor.isNull(sizeIndex)) {
+                        return cursor.getString(sizeIndex);
+                    }
                 }
             }
         }
