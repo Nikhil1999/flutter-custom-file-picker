@@ -21,6 +21,8 @@ public class CustomMethodCallHandler implements MethodChannel.MethodCallHandler 
                 break;
             case "readFile":
                 customFilePicker.readFile(result, (String) call.argument("uri"));
+            case "shareFile":
+                customFilePicker.shareFile(result, (String) call.argument("filePath"), (String) call.argument("title"));
             default:
                 handleDefault(result);
                 break;

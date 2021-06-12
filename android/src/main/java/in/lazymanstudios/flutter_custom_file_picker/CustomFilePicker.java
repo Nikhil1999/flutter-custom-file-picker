@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.webkit.MimeTypeMap;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
@@ -18,6 +20,7 @@ import java.util.Hashtable;
 import java.util.Objects;
 import java.util.UUID;
 
+import androidx.core.content.FileProvider;
 import in.lazymanstudios.flutter_custom_file_picker.handler.FileEventChannelHandler;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
@@ -81,6 +84,21 @@ import io.flutter.plugin.common.PluginRegistry;
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void shareFile(MethodChannel.Result result, String filePath, String title) {
+        try {
+            Activity activity = activityWeakReference.get();
+            if(activity != null) {
+                Intent shareIntent = new Intent();
+                shareIntent.setAction(Intent.ACTION_SEND);
+                shareIntent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(activity, activity.getPackageName(), new File(filePath)));
+                shareIntent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.'))));
+                activity.startActivity(Intent.createChooser(shareIntent, title));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

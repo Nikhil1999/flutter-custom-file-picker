@@ -26,7 +26,6 @@ class FlutterCustomFile {
 
     return _eventChannel
         ?.receiveBroadcastStream(Uuid().v4())
-        .asBroadcastStream()
         .transform(bytesTransformer)
         .asBroadcastStream();
   }

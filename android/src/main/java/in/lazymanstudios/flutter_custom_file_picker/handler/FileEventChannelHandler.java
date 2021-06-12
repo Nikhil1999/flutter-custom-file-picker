@@ -47,6 +47,7 @@ public class FileEventChannelHandler {
         private Uri uri;
 
         Dictionary<String, Future<?>> futureDictionary = new Hashtable<>();
+        List<Object> objects = new ArrayList<>();
 
         FileEventChannelStreamHandler(Activity activity, Uri uri) {
             this.activityWeakReference = new WeakReference<>(activity);
@@ -109,10 +110,12 @@ public class FileEventChannelHandler {
             });
 
             futureDictionary.put(uuid, future);
+            objects.add(arguments);
         }
 
         @Override
         public void onCancel(Object arguments) {
+            Log.d("Test", objects.contains(arguments) + " Cancelled");
             String uuid = (String) arguments;
             Log.d("TEST", uuid + " Cancelled");
             Future<?> future = futureDictionary.get(uuid);
