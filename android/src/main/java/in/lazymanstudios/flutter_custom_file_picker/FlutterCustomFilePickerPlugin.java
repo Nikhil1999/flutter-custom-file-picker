@@ -82,6 +82,10 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
           break;
         case "readFile":
           customFilePicker.readFile(result, (String) call.argument("uri"));
+          break;
+        case "shareFile":
+          customFilePicker.shareFile(result, (String) call.argument("filePath"), (String) call.argument("title"));
+          break;
         default:
           handleDefault(result);
           break;

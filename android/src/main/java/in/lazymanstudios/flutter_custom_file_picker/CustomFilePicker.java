@@ -3,9 +3,12 @@ package in.lazymanstudios.flutter_custom_file_picker;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import java.io.BufferedReader;
@@ -17,6 +20,7 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -94,8 +98,22 @@ import io.flutter.plugin.common.PluginRegistry;
                 Intent shareIntent = new Intent();
                 shareIntent.setAction(Intent.ACTION_SEND);
                 shareIntent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(activity, activity.getPackageName(), new File(filePath)));
-                shareIntent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.'))));
-                activity.startActivity(Intent.createChooser(shareIntent, title));
+                shareIntent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1)));
+                Intent chooserIntent = Intent.createChooser(shareIntent, null);
+                List<ResolveInfo> resInfoList =
+                        activity
+                                .getPackageManager()
+                                .queryIntentActivities(chooserIntent, PackageManager.MATCH_DEFAULT_ONLY);
+                for (ResolveInfo resolveInfo : resInfoList) {
+                    String packageName = resolveInfo.activityInfo.packageName;
+                    activity
+                            .grantUriPermission(
+                                    packageName,
+                                    FileProvider.getUriForFile(activity, activity.getPackageName(), new File(filePath)),
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                }
+                activity.startActivity(chooserIntent);
+                result.success(null);
             }
         } catch (Exception e) {
             e.printStackTrace();
