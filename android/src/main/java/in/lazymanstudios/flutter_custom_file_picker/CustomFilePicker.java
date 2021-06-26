@@ -8,52 +8,32 @@ import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
-import java.util.Dictionary;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 import androidx.core.content.FileProvider;
-import in.lazymanstudios.flutter_custom_file_picker.handler.FileEventChannelHandler;
-import io.flutter.plugin.common.BinaryMessenger;
-import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
 
  public class CustomFilePicker implements PluginRegistry.ActivityResultListener {
     private static final int PICK_FILE = 555;
 
-    private final Dictionary<String, FileEventChannelHandler> fileEventChannelHandlerDictionary = new Hashtable<>();
-
     private Context context;
     private WeakReference<Activity> activityWeakReference;
-    private final BinaryMessenger binaryMessenger;
 
     private MethodChannel.Result pickFileResult;
 
-    public CustomFilePicker(Context context, Activity activity, BinaryMessenger binaryMessenger) {
+    public CustomFilePicker(Context context, Activity activity) {
+        this.context = context;
         this.activityWeakReference = new WeakReference<>(activity);
-        this.binaryMessenger = binaryMessenger;
     }
 
     public void setActivity(Activity activity) {
         this.activityWeakReference = new WeakReference<>(activity);
-        Enumeration<String> e = fileEventChannelHandlerDictionary.keys();
-        while(e.hasMoreElements()) {
-            FileEventChannelHandler fileEventChannelHandler = fileEventChannelHandlerDictionary.get(e.nextElement());
-            fileEventChannelHandler.setActivity(activity);
-        }
     }
 
     public void pickFile(MethodChannel.Result result) throws IllegalStateException {
@@ -70,27 +50,6 @@ import io.flutter.plugin.common.PluginRegistry;
         }
     }
 
-    public void readFile(MethodChannel.Result result, String uriString) {
-        Uri uri = Uri.parse(uriString);
-
-        Activity activity = activityWeakReference.get();
-        if(activity != null) {
-            StringBuilder stringBuilder = new StringBuilder();
-            try (InputStream inputStream =
-                         activity.getContentResolver().openInputStream(uri);
-                 BufferedReader reader = new BufferedReader(
-                         new InputStreamReader(Objects.requireNonNull(inputStream)))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line);
-                }
-                result.success(stringBuilder.toString());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     public void shareFile(MethodChannel.Result result, String filePath, String title) {
         try {
             Activity activity = activityWeakReference.get();
@@ -99,7 +58,7 @@ import io.flutter.plugin.common.PluginRegistry;
                 shareIntent.setAction(Intent.ACTION_SEND);
                 shareIntent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(activity, activity.getPackageName(), new File(filePath)));
                 shareIntent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(filePath.substring(filePath.lastIndexOf('.') + 1)));
-                Intent chooserIntent = Intent.createChooser(shareIntent, null);
+                Intent chooserIntent = Intent.createChooser(shareIntent, title);
                 List<ResolveInfo> resInfoList =
                         activity
                                 .getPackageManager()
@@ -128,17 +87,12 @@ import io.flutter.plugin.common.PluginRegistry;
                     Uri uri = data.getData();
                     String name = getNameFromUri(uri);
                     String size = getSizeFromUri(uri);
-                    String streamID = UUID.randomUUID().toString();
 
-                    if(name != null) {
+                    if(name != null && size != null) {
                         HashMap<String, String> hashMap = new HashMap<>();
                         hashMap.put("uri", uri.toString());
                         hashMap.put("name", name);
                         hashMap.put("size", size);
-                        hashMap.put("streamID", streamID);
-
-                        FileEventChannelHandler fileEventChannelHandler = new FileEventChannelHandler(activityWeakReference.get(), uri, new EventChannel(binaryMessenger, streamID));
-                        fileEventChannelHandlerDictionary.put(streamID, fileEventChannelHandler);
 
                         pickFileResult.success(hashMap);
                     } else {
@@ -153,16 +107,6 @@ import io.flutter.plugin.common.PluginRegistry;
             return true;
         }
         return false;
-    }
-
-    public void clearEventListeners() {
-        Enumeration<String> e = fileEventChannelHandlerDictionary.keys();
-        while(e.hasMoreElements()) {
-            String id = e.nextElement();
-            FileEventChannelHandler fileEventChannelHandler = fileEventChannelHandlerDictionary.get(id);
-            fileEventChannelHandler.clearListeners();
-            fileEventChannelHandlerDictionary.remove(id);
-        }
     }
 
     private String getNameFromUri(Uri uri) {
@@ -192,6 +136,6 @@ import io.flutter.plugin.common.PluginRegistry;
                 }
             }
         }
-        return "Unknown";
+        return null;
     }
 }

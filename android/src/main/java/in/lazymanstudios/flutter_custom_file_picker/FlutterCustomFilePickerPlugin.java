@@ -18,7 +18,6 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
   private static final String METHOD_CHANNEL = "in.lazymanstudios.customfilepickerplugin/customfilepicker";
   private CustomFilePicker customFilePicker;
   private MethodChannel customMethodChannel;
-  private CustomMethodCallHandler customMethodCallHandler;
   private ActivityPluginBinding activityPluginBinding;
 
   @Override
@@ -30,7 +29,6 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     customMethodChannel.setMethodCallHandler(null);
     customMethodChannel = null;
-    customFilePicker.clearEventListeners();
     customFilePicker = null;
   }
 
@@ -60,8 +58,8 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
 
   private void setUpChannel(Context context, BinaryMessenger messenger) {
     customMethodChannel = new MethodChannel(messenger, METHOD_CHANNEL);
-    customFilePicker = new CustomFilePicker(context, null, messenger);
-    customMethodCallHandler = new CustomMethodCallHandler(customFilePicker);
+    customFilePicker = new CustomFilePicker(context, null);
+    CustomMethodCallHandler customMethodCallHandler = new CustomMethodCallHandler(customFilePicker);
     customMethodChannel.setMethodCallHandler(customMethodCallHandler);
   }
 
@@ -79,9 +77,6 @@ public class FlutterCustomFilePickerPlugin implements FlutterPlugin, ActivityAwa
       switch (methodName) {
         case "pickFile":
           customFilePicker.pickFile(result);
-          break;
-        case "readFile":
-          customFilePicker.readFile(result, (String) call.argument("uri"));
           break;
         case "shareFile":
           customFilePicker.shareFile(result, (String) call.argument("filePath"), (String) call.argument("title"));

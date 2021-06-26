@@ -16,10 +16,6 @@ class FlutterCustomFilePicker {
     }
   }
 
-  static Future<String> readFile(String uri) async {
-    return await _channel.invokeMethod('readFile', {"uri": uri});
-  }
-
   static Future<void> shareFile(String filePath, String title) async {
     return await _channel
         .invokeMethod('shareFile', {"filePath": filePath, "title": title});
